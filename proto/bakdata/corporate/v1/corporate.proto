@@ -1,8 +1,10 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package bakdata.corporate.v1;
 
-message Corporate {
+message Announcement {
   string id = 1;
   uint32 rb_id = 2;
   string state = 3;
@@ -17,4 +19,57 @@ enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_INACTIVE = 1;
   STATUS_ACTIVE = 2;
+}
+
+message Person {
+  string id = 1;
+  string name = 2;
+  Role role = 3;
+  string phone = 4;
+  string email = 5;
+}
+
+enum Role {
+  ROLE_CEO = 0;
+}
+
+message Institution {
+  string id = 1;
+  string name = 2;
+  string business_category = 3;
+  repeated Institution memberships = 4;
+  google.protobuf.Timestamp initial_registration = 5;
+  string register_id = 6;
+  Contact contact = 7;
+  Range annual_interest_expenditure = 8; 
+  Range interest_staff_number = 9;
+  repeated Person representatives = 10;
+  repeated Person interest_staff = 11;
+  string interests = 12;
+  string activities_description = 13;
+  Institution client = 14;
+  repeated GrantDonation grants = 15;
+  repeated GrantDonation donations = 16;
+  string finantcial_report_url = 17;
+  bool disclosure_required = 18;
+  string code_of_conduct_url = 19;
+}
+
+message Contact {
+  string address = 1;
+  string phone = 2;
+  string email = 3;
+  string website = 4;
+}
+
+message Range {
+  uint32 start = 1;
+  uint32 end = 2;
+}
+
+message GrantDonation {
+  string name = 1;
+  string location = 2;
+  Range money = 3;
+  string project = 4;
 }
