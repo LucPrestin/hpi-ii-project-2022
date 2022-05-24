@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package bakdata.corporate.v1;
+
+message Announcement {
+  string id = 1;
+  uint32 rb_id = 2;
+  string state = 3;
+  string reference_id = 4;
+  string event_date = 5;
+  string event_type = 6;
+  Status status = 7;
+  string information = 8;
+}
