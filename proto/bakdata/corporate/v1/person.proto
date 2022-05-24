@@ -1,13 +1,10 @@
 syntax = "proto3";
 
-import "bakdata/corporate/v1/utils.proto";
-
 package bakdata.corporate.v1;
 
 message Person {
-  string id = 1;
-  string name = 2;
-  Role role = 3;
-  string phone = 4;
-  string email = 5;
+  string name = 1;
+  string role = 2;
+  string phone = 3;
+  repeated string email = 4;
 }

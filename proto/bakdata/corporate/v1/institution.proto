@@ -11,7 +11,7 @@ message Institution {
   string id = 1;
   string name = 2;
   string business_category = 3;
-  repeated Institution memberships = 4;
+  repeated string memberships = 4;
   google.protobuf.Timestamp initial_registration = 5;
   string register_id = 6;
   Contact contact = 7;
@@ -19,12 +19,12 @@ message Institution {
   Range interest_staff_number = 9;
   repeated Person representatives = 10;
   repeated Person interest_staff = 11;
-  string interests = 12;
+  repeated string interests = 12;
   string activities_description = 13;
-  Institution client = 14;
+  repeated string clients = 14;
   repeated GrantDonation grants = 15;
   repeated GrantDonation donations = 16;
-  string finantcial_report_url = 17;
+  string financial_report_url = 17;
   bool disclosure_required = 18;
   string code_of_conduct_url = 19;
 }

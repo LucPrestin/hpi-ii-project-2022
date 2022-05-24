@@ -8,15 +8,11 @@ enum Status {
   STATUS_ACTIVE = 2;
 }
 
-enum Role {
-  ROLE_CEO = 0;
-}
-
 message Contact {
   string address = 1;
   string phone = 2;
-  string email = 3;
-  string website = 4;
+  repeated string email = 3;
+  repeated string website = 4;
 }
 
 message Range {
