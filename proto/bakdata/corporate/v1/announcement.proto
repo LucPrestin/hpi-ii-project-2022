@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "google/protobuf/timestamp.proto";
+import "bakdata/corporate/v1/utils.proto";
 
 package bakdata.corporate.v1;
 
