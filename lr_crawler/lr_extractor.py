@@ -21,105 +21,127 @@ class LrExtractor:
         self.producer = LrProducer()
 
     def extract(self):
-        #try:
-        log.info(
-            f"Sending Request for lobby register entry: {self.register_number}")
-        json_all = self.send_request().text
-        json_result = json.loads(json_all)["registerEntryDetail"]
-        #print(json_result)
-        institution = Institution()
-        int: institution.id = self.id
-        institution.name = json_result["lobbyistIdentity"]["name"]
-        institution.business_category = json_result["activity"]["de"]
-        if "membershipEntries" in json_result:
-            institution.memberships = json_result["membershipEntries"]
-        if "firstPublicationData" in json_result:
-            institution.initial_registration = json_result["account"]["firstPublicationData"]
-        institution.register_id = self.register_number
-        address_json = json_result["lobbyistIdentity"]["address"]
-        if address_json["type"] == "FOREIGN":
-            institution.contact.CopyFrom(Contact(
-                address=f"{address_json['internationalAdditional1']}, {address_json['internationalAdditional2']} {address_json['city']} {address_json['country']['code']}",
-                phone=json_result["lobbyistIdentity"]["phoneNumber"],
-                email=json_result["lobbyistIdentity"]["organizationEmails"],
-                website=json_result["lobbyistIdentity"]["websites"]
-            ))
-        elif address_json["type"] == "NATIONAL":
-            institution.contact.CopyFrom(Contact(
-                address=f"{address_json['street']} {address_json['streetNumber']}, {address_json['zipCode']} {address_json['city']} {address_json['country']['code']}",
-                phone=json_result["lobbyistIdentity"]["phoneNumber"],
-                email=json_result["lobbyistIdentity"]["organizationEmails"],
-                website=json_result["lobbyistIdentity"]["websites"]
-            ))
-        institution.annual_interest_expenditure.CopyFrom(Range(
-            start=json_result["financialExpensesEuro"]["from"],
-            end=json_result["financialExpensesEuro"]["to"]
-        ))
-        institution.representatives.extend(map(lambda entry: Person(
-            name=f"{entry['commonFirstName']} {entry['lastName']}",
-            role=entry["function"],
-            phone=entry["phoneNumber"],
-            email=entry["organizationMemberEmails"]
-        ), json_result["lobbyistIdentity"]["legalRepresentatives"]))
+        try:
+            log.info(
+                f"Sending Request for lobby register entry: {self.register_number}")
+            json_all = self.send_request().text
+            json_result = json.loads(json_all)["registerEntryDetail"]
+            institution = Institution()
+            int: institution.id = self.id
 
-        institution.interest_staff.extend(map(
-            self.getInterestPerson, json_result["lobbyistIdentity"]["namedEmployees"]))
-        institution.interests.extend(map(
-            lambda interest: interest["de"] if "de" in interest else interest["fieldOfInterestText"], json_result["fieldsOfInterest"]))
-        institution.activities_description = json_result["activityDescription"]
-        institution.clients.extend(
-        map(lambda entry: f"{entry['name']} {entry['legalForm']}", json_result["clientOrganizations"]))
-        institution.clients.extend(
-            map(lambda entry: f"{entry['commonFirstName']} {entry['lastName']}", json_result["clientPersons"]))
-
-        for entry in json_result["donators"]:
-            if entry["categoryType"] == "PUBLIC_ALLOWANCES":
-                institution.grants.append(
-                    GrantDonation(
-                        name=entry["name"],
-                        location=entry["location"],
-                        money=Range(
-                            start=entry["donationEuro"]["from"],
-                            end=entry["donationEuro"]["to"],
-                        ),
-                        project=entry["description"]
-                    )
-                )
-            elif entry["categoryType"] == "DONATIONS":
-                institution.donations.append(
-                    GrantDonation(
-                        name=entry["name"],
-                        location=entry["location"],
-                        money=Range(
-                            start=entry["donationEuro"]["from"],
-                            end=entry["donationEuro"]["to"],
-                        ),
-                        project=entry["description"]
+            if "name" not in json_result["lobbyistIdentity"]:
+                if json_result["lobbyistIdentity"]["identity"] != "NATURAL" and json_result["lobbyistIdentity"]["identity"] != "SELF_OPERATED":
+                    institution.name = json_result["lobbyistIdentity"]["name"] # throws error
+                else:
+                    log.info(f"Skipping {self.register_number} with id {self.id} since it's a person")
+                    return 
+            else:
+                institution.name = json_result["lobbyistIdentity"]["name"] 
+            if "de" in json_result["activity"]:
+                institution.business_category = json_result["activity"]["de"]
+            else:
+                institution.business_category = json_result["activity"]["text"]
+            if "membershipEntries" in json_result:
+                institution.memberships = json_result["membershipEntries"]
+            if "firstPublicationData" in json_result:
+                institution.initial_registration = json_result["account"]["firstPublicationData"]
+            institution.register_id = self.register_number
+            address_json = json_result["lobbyistIdentity"]["address"]
+            if address_json["type"] == "FOREIGN":
+                if "internationalAdditional1" in address_json and "internationalAdditional2" in address_json:
+                    institution.contact.CopyFrom(Contact(
+                        address=f"{address_json['internationalAdditional1']}, {address_json['internationalAdditional2']} {address_json['city']} {address_json['country']['code']}",
+                        phone=json_result["lobbyistIdentity"]["phoneNumber"],
+                        email=json_result["lobbyistIdentity"]["organizationEmails"],
+                        website=json_result["lobbyistIdentity"]["websites"]
                     ))
+                else:
+                     institution.contact.CopyFrom(Contact(
+                        address=f"{address_json['internationalAdditional1']}, {address_json['city']} {address_json['country']['code']}",
+                        phone=json_result["lobbyistIdentity"]["phoneNumber"],
+                        email=json_result["lobbyistIdentity"]["organizationEmails"],
+                        website=json_result["lobbyistIdentity"]["websites"]
+                    ))
+            elif address_json["type"] == "NATIONAL":
+                institution.contact.CopyFrom(Contact(
+                    address=f"{address_json['street']} {address_json['streetNumber']}, {address_json['zipCode']} {address_json['city']} {address_json['country']['code']}",
+                    phone=json_result["lobbyistIdentity"]["phoneNumber"],
+                    email=json_result["lobbyistIdentity"]["organizationEmails"],
+                    website=json_result["lobbyistIdentity"]["websites"]
+                ))
+            if "financialExpensesEuro" in json_result:
+                institution.annual_interest_expenditure.CopyFrom(Range(
+                    start=json_result["financialExpensesEuro"]["from"],
+                    end=json_result["financialExpensesEuro"]["to"]
+                ))
+            institution.representatives.extend(map(lambda entry: Person(
+                name=f"{entry['commonFirstName']} {entry['lastName']}",
+                role=entry["function"],
+                phone=entry["phoneNumber"],
+                email=entry["organizationMemberEmails"]
+            ), json_result["lobbyistIdentity"]["legalRepresentatives"]))
 
-        institution.financial_report_url = ""
-        for entry in json_result["registerEntryMedia"]:
-            if entry["type"] == "ANNUAL_REPORT":
-                institution.financial_report_url = entry["media"]["url"]
-            if entry["type"] == "CODE_OF_CONDUCT":
-                institution.code_of_conduct_url = entry["media"]["url"]
+            institution.interest_staff.extend(map(
+                self.getInterestPerson, json_result["lobbyistIdentity"]["namedEmployees"]))
+            institution.interests.extend(map(
+                lambda interest: interest["de"] if "de" in interest else interest["fieldOfInterestText"], json_result["fieldsOfInterest"]))
+            institution.activities_description = json_result["activityDescription"]
+            institution.clients.extend(
+            map(lambda entry: f"{entry['name']} {entry['legalForm']}", json_result["clientOrganizations"]))
+            institution.clients.extend(
+                map(lambda entry: f"{entry['commonFirstName']} {entry['lastName']}", json_result["clientPersons"]))
 
-        if "disclosureRequirementsExist" in json_result:
-            institution.disclosure_required = json_result["disclosureRequirementsExist"]
+            for entry in json_result["donators"]:
+                if entry["categoryType"] == "PUBLIC_ALLOWANCES":
+                    institution.grants.append(
+                        self.getGrantDonation(entry)
+                    )
+                elif entry["categoryType"] == "DONATIONS":
+                    institution.donations.append(
+                        self.getGrantDonation(entry)
+                    )
 
-        self.producer.produce_to_topic(institution=institution)
-        log.debug(institution)
-        #except Exception as ex:
-        #    log.error(f"Skipping {self.register_number} with id {self.id}")
-        #    log.error(f"Cause: {ex}")
-        #    log.error(json_result)
+            institution.financial_report_url = ""
+            for entry in json_result["registerEntryMedia"]:
+                if entry["type"] == "ANNUAL_REPORT":
+                    institution.financial_report_url = entry["media"]["url"]
+                if entry["type"] == "CODE_OF_CONDUCT":
+                    institution.code_of_conduct_url = entry["media"]["url"]
+
+            if "disclosureRequirementsExist" in json_result:
+                institution.disclosure_required = json_result["disclosureRequirementsExist"]
+
+            self.producer.produce_to_topic(institution=institution)
+            log.debug(institution)
+        except Exception as ex:
+            log.error(f"Skipping {self.register_number} with id {self.id}")
+            log.error(f"Cause: {ex}")
+            log.error(json_result)
         
 
     def getInterestPerson(self, entry):
-        print(f"{entry['commonFirstName']} {entry['lastName']}".__class__)
         if "commonFirstName" in entry and "lastName" in entry:
             return f"{entry['commonFirstName']} {entry['lastName']}"
         return
+
+    def getGrantDonation(self, entry):
+        if "location" in entry:
+            return GrantDonation(
+                name=entry["name"],
+                location=entry["location"],
+                money=Range(
+                    start=entry["donationEuro"]["from"],
+                    end=entry["donationEuro"]["to"],
+                ),
+                project=entry["description"])
+        else:
+            return GrantDonation(
+                name=entry["name"],
+                money=Range(
+                    start=entry["donationEuro"]["from"],
+                    end=entry["donationEuro"]["to"],
+                ),
+                project=entry["description"])
 
     def send_request(self):
         url = f"https://www.lobbyregister.bundestag.de/sucheJson/{self.register_number}/{self.id}"

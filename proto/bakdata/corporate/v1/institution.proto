@@ -18,7 +18,7 @@ message Institution {
   Range annual_interest_expenditure = 8; 
   Range interest_staff_number = 9;
   repeated Person representatives = 10;
-  repeated Person interest_staff = 11;
+  repeated string interest_staff = 11;
   repeated string interests = 12;
   string activities_description = 13;
   repeated string clients = 14;
