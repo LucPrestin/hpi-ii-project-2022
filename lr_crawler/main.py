@@ -5,6 +5,7 @@ from time import sleep
 import click
 
 import json
+from os import path
 
 from lr_crawler.lr_extractor import LrExtractor
 
@@ -13,10 +14,9 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-
 @click.command()
 def run():
-    file = open("../assets/json/Lobbyregistersuche-2022-05-24_13-37-55.json")
+    file = open(path.realpath("./assets/json/Lobbyregistersuche-2022-05-24_13-37-55.json"))
     data = json.load(file)
     for entry in data["results"]:
         sleep(0.5)
