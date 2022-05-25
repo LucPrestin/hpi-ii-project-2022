@@ -4,7 +4,8 @@ from time import sleep
 import requests
 from parsel import Selector
 
-from build.gen.bakdata.corporate.v1.corporate_pb2 import Corporate, Status
+from build.gen.bakdata.corporate.v1.announcement_pb2 import Announcement
+from build.gen.bakdata.corporate.v1.utils_pb2 import Status
 from rb_producer import RbProducer
 
 log = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ class RbExtractor:
                     log.info("The end has reached")
                     break
                 selector = Selector(text=text)
-                corporate = Corporate()
+                corporate = Announcement()
                 corporate.rb_id = self.rb_id
                 corporate.state = self.state
                 corporate.reference_id = self.extract_company_reference_number(selector)
@@ -61,21 +62,21 @@ class RbExtractor:
         elif event_type == "Löschungen":
             self.handle_deletes(corporate)
 
-    def handle_new_entries(self, corporate: Corporate, raw_text: str) -> Corporate:
+    def handle_new_entries(self, corporate: Announcement, raw_text: str) -> Announcement:
         log.debug(f"New company found: {corporate.id}")
         corporate.event_type = "create"
         corporate.information = raw_text
         corporate.status = Status.STATUS_ACTIVE
         self.producer.produce_to_topic(corporate=corporate)
 
-    def handle_changes(self, corporate: Corporate, raw_text: str):
+    def handle_changes(self, corporate: Announcement, raw_text: str):
         log.debug(f"Changes are made to company: {corporate.id}")
         corporate.event_type = "update"
         corporate.status = Status.STATUS_ACTIVE
         corporate.information = raw_text
         self.producer.produce_to_topic(corporate=corporate)
 
-    def handle_deletes(self, corporate: Corporate):
+    def handle_deletes(self, corporate: Announcement):
         log.debug(f"Company {corporate.id} is inactive")
         corporate.event_type = "delete"
         corporate.status = Status.STATUS_INACTIVE

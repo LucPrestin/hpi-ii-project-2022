@@ -5,7 +5,6 @@ from time import sleep
 from typing import List
 
 import requests
-from parsel import Selector
 
 from build.gen.bakdata.corporate.v1.institution_pb2 import Institution
 from build.gen.bakdata.corporate.v1.person_pb2 import Person
@@ -98,6 +97,7 @@ class LrExtractor:
 
             institution.disclosure_required = json_result["disclosureRequirementsExist"]
 
+            self.producer.produce_to_topic(corporate=corporate)
             log.debug(institution)
         except Exception as ex:
             log.error(f"Skipping {self.register_number} with id {self.id}")

@@ -6,7 +6,6 @@ import click
 
 import json
 
-from lr_crawler.constant import State
 from lr_crawler.lr_extractor import LrExtractor
 
 logging.basicConfig(
