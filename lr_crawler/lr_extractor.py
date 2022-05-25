@@ -27,7 +27,7 @@ class LrExtractor:
             json_all = self.send_request().text
             json_result = json.loads(json_all)["registerEntryDetail"]
             institution = Institution()
-            int: institution.id = self.id
+            institution.id = f"{self.register_number}_{self.id}"
 
             if "name" not in json_result["lobbyistIdentity"]:
                 if json_result["lobbyistIdentity"]["identity"] != "NATURAL" and json_result["lobbyistIdentity"]["identity"] != "SELF_OPERATED":
