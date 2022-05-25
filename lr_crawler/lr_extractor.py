@@ -66,14 +66,11 @@ class LrExtractor:
         institution.interests.extend(map(
             lambda interest: interest["de"] if "de" in interest else interest["fieldOfInterestText"], json_result["fieldsOfInterest"]))
         institution.activities_description = json_result["activityDescription"]
-        institution.clients = []
         institution.clients.extend(
-            lambda entry: f"{entry['name']} {entry['legalForm']}", json_result["clientOrganizations"])
+           map(lambda entry: f"{entry['name']} {entry['legalForm']}", json_result["clientOrganizations"]))
         institution.clients.extend(
-            lambda entry: f"{entry['commonFirstName']} {entry['lastName']}", json_result["clientPersons"])
+            map(lambda entry: f"{entry['commonFirstName']} {entry['lastName']}", json_result["clientPersons"]))
 
-        institution.grants = []
-        institution.donations = []
         for entry in json_result["donators"]:
             if entry["categoryType"] == "PUBLIC_ALLOWANCES":
                 institution.grants.append(
@@ -106,9 +103,10 @@ class LrExtractor:
             if entry["type"] == "CODE_OF_CONDUCT":
                 institution.code_of_conduct_url = entry["media"]["url"]
 
-        institution.disclosure_required = json_result["disclosureRequirementsExist"]
+        if "disclosureRequirementsExist" in json_result:
+            institution.disclosure_required = json_result["disclosureRequirementsExist"]
 
-        self.producer.produce_to_topic(corporate=corporate)
+        self.producer.produce_to_topic(institution=institution)
         log.debug(institution)
         # except Exception as ex:
         #     log.error(f"Skipping {self.register_number} with id {self.id}")
