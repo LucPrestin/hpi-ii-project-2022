@@ -26,7 +26,7 @@ class LrExtractor:
             f"Sending Request for lobby register entry: {self.register_number}")
         json_all = self.send_request().text
         json_result = json.loads(json_all)["registerEntryDetail"]
-        print(json_result)
+        #print(json_result)
         institution = Institution()
         int: institution.id = self.id
         institution.name = json_result["lobbyistIdentity"]["name"]
@@ -61,13 +61,14 @@ class LrExtractor:
             phone=entry["phoneNumber"],
             email=entry["organizationMemberEmails"]
         ), json_result["lobbyistIdentity"]["legalRepresentatives"]))
+
         institution.interest_staff.extend(map(
-            lambda entry: f"{entry['commonFirstName']} {entry['lastName']}", json_result["lobbyistIdentity"]["namedEmployees"]))
+            self.getInterestPerson, json_result["lobbyistIdentity"]["namedEmployees"]))
         institution.interests.extend(map(
             lambda interest: interest["de"] if "de" in interest else interest["fieldOfInterestText"], json_result["fieldsOfInterest"]))
         institution.activities_description = json_result["activityDescription"]
         institution.clients.extend(
-           map(lambda entry: f"{entry['name']} {entry['legalForm']}", json_result["clientOrganizations"]))
+        map(lambda entry: f"{entry['name']} {entry['legalForm']}", json_result["clientOrganizations"]))
         institution.clients.extend(
             map(lambda entry: f"{entry['commonFirstName']} {entry['lastName']}", json_result["clientPersons"]))
 
@@ -75,25 +76,25 @@ class LrExtractor:
             if entry["categoryType"] == "PUBLIC_ALLOWANCES":
                 institution.grants.append(
                     GrantDonation(
-                        entry["name"],
-                        entry["location"],
-                        Range(
-                            entry["donationEuro"]["from"],
-                            entry["donationEuro"]["to"],
+                        name=entry["name"],
+                        location=entry["location"],
+                        money=Range(
+                            start=entry["donationEuro"]["from"],
+                            end=entry["donationEuro"]["to"],
                         ),
-                        entry["description"]
+                        project=entry["description"]
                     )
                 )
             elif entry["categoryType"] == "DONATIONS":
                 institution.donations.append(
                     GrantDonation(
-                        entry["name"],
-                        entry["location"],
-                        Range(
-                            entry["donationEuro"]["from"],
-                            entry["donationEuro"]["to"],
+                        name=entry["name"],
+                        location=entry["location"],
+                        money=Range(
+                            start=entry["donationEuro"]["from"],
+                            end=entry["donationEuro"]["to"],
                         ),
-                        entry["description"]
+                        project=entry["description"]
                     ))
 
         institution.financial_report_url = ""
@@ -108,10 +109,17 @@ class LrExtractor:
 
         self.producer.produce_to_topic(institution=institution)
         log.debug(institution)
-        # except Exception as ex:
-        #     log.error(f"Skipping {self.register_number} with id {self.id}")
-        #     log.error(f"Cause: {ex}")
-        exit(0)
+        #except Exception as ex:
+        #    log.error(f"Skipping {self.register_number} with id {self.id}")
+        #    log.error(f"Cause: {ex}")
+        #    log.error(json_result)
+        
+
+    def getInterestPerson(self, entry):
+        print(f"{entry['commonFirstName']} {entry['lastName']}".__class__)
+        if "commonFirstName" in entry and "lastName" in entry:
+            return f"{entry['commonFirstName']} {entry['lastName']}"
+        return
 
     def send_request(self):
         url = f"https://www.lobbyregister.bundestag.de/sucheJson/{self.register_number}/{self.id}"
