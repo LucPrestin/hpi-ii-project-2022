@@ -131,7 +131,7 @@ poetry run python lr_crawler/main.py
 This will query every entry that is given in the [current entry list](https://github.com/LucPrestin/hpi-ii-project-2022/blob/main/assets/json/Lobbyregistersuche-2022-05-24_13-37-55.json). If you want a specific entry, you can use the id flag.
 
 ```shell
-poetry run python lr_crawler/main.py --id <id e.g. R002180>
+poetry run python lr_crawler/main.py --id "<id e.g. R002180>"
 ```
 
 You can use the `--help` option to see the usage:
