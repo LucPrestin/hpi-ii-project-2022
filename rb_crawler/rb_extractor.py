@@ -1,5 +1,6 @@
 import logging
 from time import sleep
+from tokenize import String
 
 import requests
 from parsel import Selector
@@ -26,17 +27,17 @@ class RbExtractor:
                     log.info("The end has reached")
                     break
                 selector = Selector(text=text)
-                corporate = Announcement()
-                corporate.rb_id = self.rb_id
-                corporate.state = self.state
-                corporate.reference_id = self.extract_company_reference_number(selector)
+                announcement = Announcement()
+                announcement.rb_id = self.rb_id
+                announcement.state = self.state
+                announcement.reference_id = self.extract_company_reference_number(selector)
                 event_type = selector.xpath("/html/body/font/table/tr[3]/td/text()").get()
-                corporate.event_date = selector.xpath("/html/body/font/table/tr[4]/td/text()").get()
-                corporate.id = f"{self.state}_{self.rb_id}"
+                announcement.event_date = selector.xpath("/html/body/font/table/tr[4]/td/text()").get()
+                announcement.id = f"{self.state}_{self.rb_id}"
                 raw_text: str = selector.xpath("/html/body/font/table/tr[6]/td/text()").get()
-                self.handle_events(corporate, event_type, raw_text)
+                self.handle_events(announcement, event_type, raw_text)
                 self.rb_id = self.rb_id + 1
-                log.debug(corporate)
+                log.debug(announcement)
             except Exception as ex:
                 log.error(f"Skipping {self.rb_id} in state {self.state}")
                 log.error(f"Cause: {ex}")
@@ -54,30 +55,33 @@ class RbExtractor:
     def extract_company_reference_number(selector: Selector) -> str:
         return ((selector.xpath("/html/body/font/table/tr[1]/td/nobr/u/text()").get()).split(": ")[1]).strip()
 
-    def handle_events(self, corporate, event_type, raw_text):
+    def handle_events(self, announcement, event_type, raw_text):
         if event_type == "Neueintragungen":
-            self.handle_new_entries(corporate, raw_text)
+            self.handle_new_entries(announcement, raw_text)
         elif event_type == "Veränderungen":
-            self.handle_changes(corporate, raw_text)
+            self.handle_changes(announcement, raw_text)
         elif event_type == "Löschungen":
-            self.handle_deletes(corporate)
+            self.handle_deletes(announcement)
+        
+        announcement.raw_information = raw_text
+        announcement.reference_number = self.extract_reference_number(announcement.information)
+        self.producer.produce_to_topic(announcment=announcement)
 
-    def handle_new_entries(self, corporate: Announcement, raw_text: str) -> Announcement:
-        log.debug(f"New company found: {corporate.id}")
-        corporate.event_type = "create"
-        corporate.information = raw_text
-        corporate.status = Status.STATUS_ACTIVE
-        self.producer.produce_to_topic(corporate=corporate)
+    def handle_new_entries(self, announcement: Announcement, raw_text: str) -> Announcement:
+        log.debug(f"New company found: {announcement.id}")
+        announcement.event_type = "create"
+        announcement.status = Status.STATUS_ACTIVE
 
-    def handle_changes(self, corporate: Announcement, raw_text: str):
-        log.debug(f"Changes are made to company: {corporate.id}")
-        corporate.event_type = "update"
-        corporate.status = Status.STATUS_ACTIVE
-        corporate.information = raw_text
-        self.producer.produce_to_topic(corporate=corporate)
+    def handle_changes(self, announcement: Announcement, raw_text: str):
+        log.debug(f"Changes are made to company: {announcement.id}")
+        announcement.event_type = "update"
+        announcement.status = Status.STATUS_ACTIVE
 
-    def handle_deletes(self, corporate: Announcement):
-        log.debug(f"Company {corporate.id} is inactive")
-        corporate.event_type = "delete"
-        corporate.status = Status.STATUS_INACTIVE
-        self.producer.produce_to_topic(corporate=corporate)
+    def handle_deletes(self, announcment: Announcement, raw_text: str):
+        log.debug(f"Company {announcment.id} is inactive")
+        announcment.event_type = "delete"
+        announcment.status = Status.STATUS_INACTIVE
+    
+    def extract_reference_number(self, information: String):
+        return information.split(':', 1)[0]
+

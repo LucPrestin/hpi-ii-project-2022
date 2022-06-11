@@ -28,9 +28,9 @@ class RbProducer:
 
         self.producer = SerializingProducer(producer_conf)
 
-    def produce_to_topic(self, corporate: Announcement):
+    def produce_to_topic(self, announcment: Announcement):
         self.producer.produce(
-            topic=TOPIC, partition=-1, key=str(corporate.id), value=corporate, on_delivery=self.delivery_report
+            topic=TOPIC, partition=-1, key=str(announcment.id), value=announcment, on_delivery=self.delivery_report
         )
 
         # It is a naive approach to flush after each produce this can be optimised

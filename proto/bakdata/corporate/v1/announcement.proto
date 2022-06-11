@@ -12,5 +12,6 @@ message Announcement {
   string event_date = 5;
   string event_type = 6;
   Status status = 7;
-  string information = 8;
+  string raw_information = 8;
+  string reference_number = 9;
 }
