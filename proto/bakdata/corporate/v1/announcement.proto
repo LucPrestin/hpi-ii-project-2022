@@ -13,5 +13,7 @@ message Announcement {
   string event_type = 6;
   Status status = 7;
   string raw_information = 8;
-  string reference_number = 9;
+  string company_name = 10;
+  repeated string ceos = 11;
+  repeated string shareholders = 12;
 }

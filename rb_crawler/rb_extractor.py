@@ -66,9 +66,8 @@ class RbExtractor:
             self.handle_deletes(announcement)
         
         announcement.raw_information = raw_text
-        announcement.company = self.extract_company_name(raw_text)
-        announcement.reference_number = self.extract_reference_number(raw_text)
-        person, person_type = self.extract_person(raw_text)
+        announcement.company_name = self.extract_company_name(raw_text)
+        self.set_announcement_people(announcement, raw_text)            
 
         self.producer.produce_to_topic(announcment=announcement)
 
@@ -82,30 +81,36 @@ class RbExtractor:
         announcement.event_type = "update"
         announcement.status = Status.STATUS_ACTIVE
 
-    def handle_deletes(self, announcment: Announcement, raw_text: str):
+    def handle_deletes(self, announcment: Announcement):
         log.debug(f"Company {announcment.id} is inactive")
         announcment.event_type = "delete"
         announcment.status = Status.STATUS_INACTIVE
     
-    def extract_reference_number(self, information: String):
-        return information.split(':', 1)[0]
-    
     def extract_company_name(self, information: String):
-        information_without_reference_number = information.split(':', 1)[1]
-        return information_without_reference_number.split(',', 1)[0]
+        return information.split(',', 1)[0]
     
+    def set_announcement_people(self, announcement, raw_text):
+        people, person_type = self.extract_person(raw_text)
+        if person_type == 'Geschäftsführer:' or person_type == 'Geschäftsführerin:':
+            announcement.ceos.extend(people)
+        elif person_type == 'Gesellschafter:' or person_type == 'Gesellschafterin:':
+            announcement.shareholders.extend(people)
+
+
     def extract_person(self, information: String):
         regexes = {
+            'Inhaber:': self.extract_ceos,
+            'Inhaberin:': self.extract_ceos,
             'Geschäftsführer:': self.extract_ceos,
             'Geschäftsführerin:': self.extract_ceos,
-            'Gesellschafter:': self.extact_shareholders,
-            'Gesellschafter:': self.extract_shareholders
+            'Gesellschafter:': self.extract_shareholders,
+            'Gesellschafterin:': self.extract_shareholders
         }
 
         people = []
         p_type = ''
         for person_type, method in regexes.items():
-            if re.compile(person_type).match(information):
+            if re.search(person_type, information):
                 people = method(information.split(person_type, 1)[1])
                 p_type = person_type
                 break
@@ -116,18 +121,8 @@ class RbExtractor:
         result = []
         for raw_ceo in raw_ceos.split(';'):
             intel = raw_ceo.split(',')
-            result.append({
-                'first_names': intel[0],
-                'last_name': intel[1],
-                'birth_place': intel[2],
-                'birth_date': intel[3]
-            })
+            result.append(intel[0] + ', ' + intel[1])
         return result
 
-    def extact_shareholders(self, raw_shareholders):
-        result = []
-        for raw_shareholder in raw_shareholders.split(';'):
-            result.append({
-                'name': raw_shareholder.split(',', 1)[0]
-            })
-        return result
+    def extract_shareholders(self, raw_shareholders):
+        return [raw_shareholders.split(';')[1]]
