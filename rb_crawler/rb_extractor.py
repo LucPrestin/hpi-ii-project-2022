@@ -5,6 +5,8 @@ from tokenize import String
 import requests
 from parsel import Selector
 
+import re
+
 from build.gen.bakdata.corporate.v1.announcement_pb2 import Announcement
 from build.gen.bakdata.corporate.v1.utils_pb2 import Status
 from rb_producer import RbProducer
@@ -64,7 +66,10 @@ class RbExtractor:
             self.handle_deletes(announcement)
         
         announcement.raw_information = raw_text
-        announcement.reference_number = self.extract_reference_number(announcement.information)
+        announcement.company = self.extract_company_name(raw_text)
+        announcement.reference_number = self.extract_reference_number(raw_text)
+        person, person_type = self.extract_person(raw_text)
+
         self.producer.produce_to_topic(announcment=announcement)
 
     def handle_new_entries(self, announcement: Announcement, raw_text: str) -> Announcement:
@@ -84,4 +89,45 @@ class RbExtractor:
     
     def extract_reference_number(self, information: String):
         return information.split(':', 1)[0]
+    
+    def extract_company_name(self, information: String):
+        information_without_reference_number = information.split(':', 1)[1]
+        return information_without_reference_number.split(',', 1)[0]
+    
+    def extract_person(self, information: String):
+        regexes = {
+            'Geschäftsführer:': self.extract_ceos,
+            'Geschäftsführerin:': self.extract_ceos,
+            'Gesellschafter:': self.extact_shareholders,
+            'Gesellschafter:': self.extract_shareholders
+        }
 
+        people = []
+        p_type = ''
+        for person_type, method in regexes.items():
+            if re.compile(person_type).match(information):
+                people = method(information.split(person_type, 1)[1])
+                p_type = person_type
+                break
+        
+        return people, p_type
+    
+    def extract_ceos(self, raw_ceos):
+        result = []
+        for raw_ceo in raw_ceos.split(';'):
+            intel = raw_ceo.split(',')
+            result.append({
+                'first_names': intel[0],
+                'last_name': intel[1],
+                'birth_place': intel[2],
+                'birth_date': intel[3]
+            })
+        return result
+
+    def extact_shareholders(self, raw_shareholders):
+        result = []
+        for raw_shareholder in raw_shareholders.split(';'):
+            result.append({
+                'name': raw_shareholder.split(',', 1)[0]
+            })
+        return result
