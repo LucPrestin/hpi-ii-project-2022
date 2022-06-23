@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 repository = "https://github.com/bakdata/hpi-ii-project-2022"
 packages = [
-    { include = "rb_crawler" }
+    { include = "crawlers" }
 ]
 
 [tool.poetry.dependencies]

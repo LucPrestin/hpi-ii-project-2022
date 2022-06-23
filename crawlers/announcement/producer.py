@@ -6,13 +6,13 @@ from confluent_kafka.schema_registry.protobuf import ProtobufSerializer
 from confluent_kafka.serialization import StringSerializer
 
 from build.gen.bakdata.corporate.v1.announcement_pb2 import Announcement
-from rb_crawler.constant import SCHEMA_REGISTRY_URL, BOOTSTRAP_SERVER, TOPIC
+from .constants import SCHEMA_REGISTRY_URL, BOOTSTRAP_SERVER, TOPIC
 
 log = logging.getLogger(__name__)
 
 
-class RbProducer:
-    def __init__(self):
+class AnnouncementProducer:
+    def __init__(self) -> None:
         schema_registry_conf = {"url": SCHEMA_REGISTRY_URL}
         schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
@@ -28,16 +28,16 @@ class RbProducer:
 
         self.producer = SerializingProducer(producer_conf)
 
-    def produce_to_topic(self, announcment: Announcement):
+    def produce_to_topic(self, announcement: Announcement) -> None:
         self.producer.produce(
-            topic=TOPIC, partition=-1, key=str(announcment.id), value=announcment, on_delivery=self.delivery_report
+            topic=TOPIC, partition=-1, key=str(announcement.id), value=announcement, on_delivery=self.delivery_report
         )
 
         # It is a naive approach to flush after each produce this can be optimised
         self.producer.poll()
 
     @staticmethod
-    def delivery_report(err, msg):
+    def delivery_report(err, msg) -> None:
         """
         Reports the failure or success of a message delivery.
         Args:

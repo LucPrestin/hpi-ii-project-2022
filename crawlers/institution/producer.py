@@ -1,20 +1,18 @@
 import logging
-from build.gen.bakdata.corporate.v1 import institution_pb2
 
 from confluent_kafka import SerializingProducer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.protobuf import ProtobufSerializer
 from confluent_kafka.serialization import StringSerializer
-
-from build.gen.bakdata.corporate.v1.institution_pb2 import Institution
-from build.gen.bakdata.corporate.v1.person_pb2 import Person
-from build.gen.bakdata.corporate.v1.utils_pb2 import *
 from lr_crawler.constant import SCHEMA_REGISTRY_URL, BOOTSTRAP_SERVER, TOPIC
+
+from build.gen.bakdata.corporate.v1 import institution_pb2
+from build.gen.bakdata.corporate.v1.institution_pb2 import Institution
 
 log = logging.getLogger(__name__)
 
 
-class LrProducer:
+class InstitutionProducer:
     def __init__(self):
         schema_registry_conf = {"url": SCHEMA_REGISTRY_URL}
         schema_registry_client = SchemaRegistryClient(schema_registry_conf)

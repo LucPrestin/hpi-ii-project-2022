@@ -1,12 +1,13 @@
 syntax = "proto3";
 
 import "bakdata/corporate/v1/utils.proto";
+import "bakdata/corporate/v1/person.proto";
 
 package bakdata.corporate.v1;
 
 message Announcement {
   string id = 1;
-  uint32 rb_id = 2;
+  uint32 announcement_id = 2;
   string state = 3;
   string reference_id = 4;
   string event_date = 5;
@@ -14,6 +15,6 @@ message Announcement {
   Status status = 7;
   string raw_information = 8;
   string company_name = 10;
-  repeated string ceos = 11;
-  repeated string shareholders = 12;
+  repeated Person ceos = 11;
+  repeated Person shareholders = 12;
 }
