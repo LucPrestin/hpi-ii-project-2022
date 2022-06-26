@@ -19,10 +19,3 @@ message Range {
   uint32 start = 1;
   uint32 end = 2;
 }
-
-message GrantDonation {
-  string name = 1;
-  string location = 2;
-  Range money = 3;
-  string project = 4;
-}

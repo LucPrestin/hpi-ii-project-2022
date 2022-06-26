@@ -20,12 +20,12 @@ def crawl_all_institutions():
 
     for entry in data["results"]:
         sleep(0.5)
-        detailed_data = _fetch_detailed_data(entry['detailsPageUrl'])
+        detailed_data = _fetch_detailed_data(entry['registerNumber'], entry['id'])
 
         try:
             extractor.extract(detailed_data)
         except Exception as ex:
-            log.error(f"Skipping register entry {detailed_data['register_number']}")
+            log.error(f"Skipping register entry {detailed_data['registerNumber']}")
             log.error(f"Cause: {ex}")
             continue
 
@@ -39,7 +39,7 @@ def crawl_institution_with_id(register_number: str) -> None:
         log.error(f'An entry with the register number {register_number} does not exist')
         return
 
-    detailed_data = _fetch_detailed_data(general_data['detailsPageUrl'])
+    detailed_data = _fetch_detailed_data(general_data['registerNumber'], general_data['id'])
 
     try:
         extractor.extract(detailed_data)

@@ -35,9 +35,9 @@ def crawl_trade_register_announcements(announcement_id: int, state: State) -> No
             break
 
         try:
-            extractor.extract(text)
+            extractor.extract(text, announcement_id, state)
         except Exception as ex:
             log.error(f"Skipping {announcement_id} in state {state}")
             log.error(f"Cause: {ex}")
+        finally:
             announcement_id = announcement_id + 1
-            continue

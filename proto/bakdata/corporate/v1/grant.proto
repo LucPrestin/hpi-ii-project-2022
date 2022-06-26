@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+import "bakdata/corporate/v1/utils.proto";
+
+package bakdata.corporate.v1;
+
+message GrantDonation {
+  string id = 1;
+  string name = 2;
+  string location = 3;
+  Range money = 4;
+  string project = 5;
+}

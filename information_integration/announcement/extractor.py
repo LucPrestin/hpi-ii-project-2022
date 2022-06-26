@@ -7,6 +7,7 @@ from parsel import Selector
 
 from build.gen.bakdata.corporate.v1.announcement_pb2 import Announcement
 from build.gen.bakdata.corporate.v1.utils_pb2 import Status
+from information_integration.person import PersonExtractor
 from .producer import AnnouncementProducer
 
 log = logging.getLogger(__name__)
@@ -15,6 +16,7 @@ log = logging.getLogger(__name__)
 class AnnouncementExtractor:
     def __init__(self) -> None:
         self.announcement_producer: AnnouncementProducer = AnnouncementProducer()
+        self.person_extractor: PersonExtractor = PersonExtractor()
 
     def extract(self, text, announcement_id: int, state: str) -> None:
         selector = Selector(text=text)
@@ -72,12 +74,12 @@ class AnnouncementExtractor:
 
     def extract_person(self, information: String) -> Tuple[List[str], str]:
         regexes = {
-            'Inhaber:': self.extract_ceos,
-            'Inhaberin:': self.extract_ceos,
-            'Geschäftsführer:': self.extract_ceos,
-            'Geschäftsführerin:': self.extract_ceos,
-            'Gesellschafter:': self.extract_shareholders,
-            'Gesellschafterin:': self.extract_shareholders
+            'Inhaber:': self.person_extractor.extract_ceos_from_trade_register_announcement,
+            'Inhaberin:': self.person_extractor.extract_ceos_from_trade_register_announcement,
+            'Geschäftsführer:': self.person_extractor.extract_ceos_from_trade_register_announcement,
+            'Geschäftsführerin:': self.person_extractor.extract_ceos_from_trade_register_announcement,
+            'Gesellschafter:': self.extract_shareholder,
+            'Gesellschafterin:': self.extract_shareholder
         }
 
         people = []
@@ -93,13 +95,5 @@ class AnnouncementExtractor:
         return people, p_type
 
     @staticmethod
-    def extract_ceos(raw_ceos: str) -> List[str]:
-        result = []
-        for raw_ceo in raw_ceos.split(';'):
-            intel = raw_ceo.split(',')
-            result.append(intel[0] + ', ' + intel[1])
-        return result
-
-    @staticmethod
-    def extract_shareholders(raw_shareholders: str) -> List[str]:
+    def extract_shareholder(raw_shareholders):
         return [raw_shareholders.split(';')[1]]

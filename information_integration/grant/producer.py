@@ -5,19 +5,19 @@ from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.protobuf import ProtobufSerializer
 from confluent_kafka.serialization import StringSerializer
 
-from build.gen.bakdata.corporate.v1.person_pb2 import Person
+from build.gen.bakdata.corporate.v1.grant_pb2 import GrantDonation
 from ._constants import SCHEMA_REGISTRY_URL, BOOTSTRAP_SERVER, TOPIC
 
 log = logging.getLogger(__name__)
 
 
-class PersonProducer:
+class GrantDonationProducer:
     def __init__(self):
         schema_registry_conf = {"url": SCHEMA_REGISTRY_URL}
         schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
         protobuf_serializer = ProtobufSerializer(
-            Person, schema_registry_client, {"use.deprecated.format": True}
+            GrantDonation, schema_registry_client, {"use.deprecated.format": True}
         )
 
         producer_conf = {
@@ -28,9 +28,10 @@ class PersonProducer:
 
         self.producer = SerializingProducer(producer_conf)
 
-    def produce_to_topic(self, person: Person):
+    def produce_to_topic(self, grant_donation: GrantDonation):
         self.producer.produce(
-            topic=TOPIC, partition=-1, key=str(person.name), value=person, on_delivery=self.delivery_report
+            topic=TOPIC, partition=-1, key=str(grant_donation.id), value=grant_donation,
+            on_delivery=self.delivery_report
         )
 
         # It is a naive approach to flush after each produce this can be optimised
