@@ -5,7 +5,7 @@ from time import sleep
 import click
 import requests
 
-from .constants import State
+from ._constants import State
 from .extractor import AnnouncementExtractor
 
 logging.basicConfig(

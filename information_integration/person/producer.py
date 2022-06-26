@@ -1,15 +1,12 @@
 import logging
-from build.gen.bakdata.corporate.v1 import institution_pb2
 
 from confluent_kafka import SerializingProducer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.protobuf import ProtobufSerializer
 from confluent_kafka.serialization import StringSerializer
 
-from build.gen.bakdata.corporate.v1.institution_pb2 import Institution
 from build.gen.bakdata.corporate.v1.person_pb2 import Person
-from build.gen.bakdata.corporate.v1.utils_pb2 import *
-from lr_crawler.constant import SCHEMA_REGISTRY_URL, BOOTSTRAP_SERVER, TOPIC
+from ._constants import SCHEMA_REGISTRY_URL, BOOTSTRAP_SERVER, TOPIC
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +17,7 @@ class PersonProducer:
         schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
         protobuf_serializer = ProtobufSerializer(
-            institution_pb2.Institution, schema_registry_client, {"use.deprecated.format": True}
+            Person, schema_registry_client, {"use.deprecated.format": True}
         )
 
         producer_conf = {
@@ -31,9 +28,9 @@ class PersonProducer:
 
         self.producer = SerializingProducer(producer_conf)
 
-    def produce_to_topic(self, institution: Institution):
+    def produce_to_topic(self, person: Person):
         self.producer.produce(
-            topic=TOPIC, partition=-1, key=str(institution.id), value=institution, on_delivery=self.delivery_report
+            topic=TOPIC, partition=-1, key=str(person.id), value=person, on_delivery=self.delivery_report
         )
 
         # It is a naive approach to flush after each produce this can be optimised
