@@ -3,10 +3,9 @@ import logging
 import os
 from time import sleep
 
-import click
 import requests
 
-from .extractor import InstitutionExtractor
+from information_integration.institution.extractor import InstitutionExtractor
 
 logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO"), format="%(asctime)s | %(name)s | %(levelname)s | %(message)s"
@@ -14,16 +13,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-@click.command()
-@click.option("-i", "--id", "institution_id", type=click.STRING, help="The lr id to extract")
-def run(register_number: str) -> None:
-    if register_number is None:
-        _crawl_all_institutions()
-    else:
-        _crawl_institution_with_id(register_number)
-
-
-def _crawl_all_institutions():
+def crawl_all_institutions():
     extractor = InstitutionExtractor()
 
     data = _fetch_general_data_list()
@@ -40,7 +30,7 @@ def _crawl_all_institutions():
             continue
 
 
-def _crawl_institution_with_id(register_number: str) -> None:
+def crawl_institution_with_id(register_number: str) -> None:
     extractor = InstitutionExtractor()
 
     general_data = _fetch_general_data(register_number)

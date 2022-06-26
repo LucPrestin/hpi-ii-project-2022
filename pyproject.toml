@@ -2,12 +2,12 @@
 name = "hpi-ii-project-2022"
 version = "0.1.0"
 description = ""
-authors = ["raminqaf <ramin.gharib@bakdata.com>"]
+authors = ["raminqaf <ramin.gharib@bakdata.com>", "LucPrestin@users.noreply.github.com", "grittaweisheit@users.noreply.github.com"]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/bakdata/hpi-ii-project-2022"
+repository = "https://github.com/LucPrestin/hpi-ii-project-2022"
 packages = [
-    { include = "crawlers" }
+    { include = "information_integration" }
 ]
 
 [tool.poetry.dependencies]
@@ -75,7 +75,7 @@ wsproto = "1.1.0"
 click = "8.0.2"
 
 [tool.poetry.dev-dependencies]
-black = {version = "^21.7b0", allow-prereleases = true, python = "^3.8" }
+black = { version = "^21.7b0", allow-prereleases = true, python = "^3.8" }
 isort = "^5.4"
 flake8 = "^3.8"
 autoflake = "^1.4"
@@ -88,10 +88,10 @@ include_trailing_comma = true
 lines_after_imports = 2
 lines_between_types = 1
 use_parentheses = true
-src_paths = ["rb_crawler"]
+src_paths = ["announcement", "crawlers", "institution", "person"]
 skip_glob = ['build/*']
 filter_files = true
-known_first_party = "rb_crawler"
+known_first_party = "announcement"
 line_length = 100
 
 [tool.black]

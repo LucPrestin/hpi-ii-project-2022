@@ -2,11 +2,10 @@ import logging
 import os
 from time import sleep
 
-import click
 import requests
 
-from ._constants import State
-from .extractor import AnnouncementExtractor
+from information_integration.announcement import AnnouncementExtractor
+from information_integration.announcement import State
 
 logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO"), format="%(asctime)s | %(name)s | %(levelname)s | %(message)s"
@@ -14,10 +13,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-@click.command()
-@click.option("-i", "--id", "announcement_id", type=int, help="The announcement_id to initialize the crawl from")
-@click.option("-s", "--state", type=click.Choice(State), help="The state ISO code")
-def run(announcement_id: int, state: State) -> None:
+def crawl_trade_register_announcements(announcement_id: int, state: State) -> None:
     if state == State.SCHLESWIG_HOLSTEIN and announcement_id < 7830:
         error = ValueError("The start announcement_id for the state SCHLESWIG_HOLSTEIN (sh) is 7831")
         log.error(error)
@@ -31,7 +27,7 @@ def run(announcement_id: int, state: State) -> None:
 
         log.info(f"Sending Request for: {announcement_id} and state: {state}")
 
-        url = f"https://www.handelsregisterbekanntmachungen.de/skripte/hrb.php?rb_id={self.announcement_id}&land_abk={self.state}"
+        url = f"https://www.handelsregisterbekanntmachungen.de/skripte/hrb.php?rb_id={announcement_id}&land_abk={state}"
         text = requests.get(url=url).text
 
         if "Falsche Parameter" in text:
