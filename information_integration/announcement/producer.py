@@ -7,12 +7,15 @@ from confluent_kafka.serialization import StringSerializer
 
 from build.gen.bakdata.corporate.v1.announcement_pb2 import Announcement
 from ._constants import SCHEMA_REGISTRY_URL, BOOTSTRAP_SERVER, TOPIC
+from ..utils import get_used_ids
 
 log = logging.getLogger(__name__)
 
 
 class AnnouncementProducer:
     def __init__(self) -> None:
+        self.used_ids = get_used_ids(TOPIC)
+
         schema_registry_conf = {"url": SCHEMA_REGISTRY_URL}
         schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
@@ -29,12 +32,21 @@ class AnnouncementProducer:
         self.producer = SerializingProducer(producer_conf)
 
     def produce_to_topic(self, announcement: Announcement) -> None:
-        self.producer.produce(
-            topic=TOPIC, partition=-1, key=str(announcement.id), value=announcement, on_delivery=self.delivery_report
-        )
+        if announcement.id not in self.used_ids:
+            self.used_ids.append(announcement.id)
 
-        # It is a naive approach to flush after each produce this can be optimised
-        self.producer.poll()
+            self.producer.produce(
+                topic=TOPIC,
+                partition=-1,
+                key=str(announcement.id),
+                value=announcement,
+                on_delivery=self.delivery_report
+            )
+
+            # It is a naive approach to flush after each produce this can be optimised
+            self.producer.poll()
+        else:
+            log.info(f'Announcement {announcement.id} already produced to {TOPIC}, skipping entry')
 
     @staticmethod
     def delivery_report(err, msg) -> None:

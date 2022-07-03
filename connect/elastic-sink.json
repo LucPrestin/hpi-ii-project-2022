@@ -2,10 +2,9 @@
   "name": "elasticsearch-sink",
   "config": {
     "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
-    "topics": "lobby-events",
+    "topics": "trade_register_announcements, grants, lobby_register_institutions, persons",
     "input.data.format": "PROTOBUF",
     "connection.url": "http://elasticsearch:9200",
-    "type.name": "lobby-events",
     "key.ignore": "false",
     "schema.ignore": "true",
     "tasks.max": "1"

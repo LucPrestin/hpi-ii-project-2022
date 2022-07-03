@@ -5,7 +5,7 @@ from time import sleep
 
 import requests
 
-from information_integration.institution.extractor import InstitutionExtractor
+from information_integration.institution import InstitutionExtractor
 
 logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO"), format="%(asctime)s | %(name)s | %(levelname)s | %(message)s"
