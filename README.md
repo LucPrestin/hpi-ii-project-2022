@@ -1,212 +1,57 @@
 # HPI information integration project SoSe 2022
 
-This repository provides a code base for the information integration course in the summer semester of 2022. Below you
-can find the documentation for setting up the project.
+This project is the exercise for the HPI lecture "Information Integration" at HPI of [@grittaweisheit](https://github.com/grittaweisheit) and [@lucprestin](https://github.com/LucPrestin). For the documentation, please have a look at our [wiki](https://github.com/LucPrestin/hpi-ii-project-2022/wiki)
+
+![](architecture.png)
+
+# Setup
 
 ## Prerequisites
 
 - Install [sed](https://wiki.ubuntuusers.de/sed/)
-- Install [Poetry](https://python-poetry.org/docs/#installation)
-- Install [Docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/)
-- Install [Protobuf compiler (protoc)](https://grpc.io/docs/protoc-installation/). If you are using windows you can
-  use [this guide](https://www.geeksforgeeks.org/how-to-install-protocol-buffers-on-windows/)
+- Install [poetry](https://python-poetry.org/docs/#installation)
+- Install [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/)
+- Install a protobuf compiler. We used [protoc](https://grpc.io/docs/protoc-installation/) as a default. If you want to use a different one, you need to adapt `generate-proto.sh` accordingly.
 - Install [jq](https://stedolan.github.io/jq/download/)
 
-## Architecture
-
-![](architecture.png)
-
-## Datasets
-
-### RB Website
-
-The [Registerbekanntmachung website](https://www.handelsregisterbekanntmachungen.de/index.php?aktion=suche) contains
-announcements concerning entries made into the companies, cooperatives, and partnerships registers within the electronic
-information and communication system. You can search for the announcements. Each announcement can be requested through
-the link below. You only need to pass the query parameters `rb_id` and `land_abk`. For instance, we chose the state
-Rheinland-Pfalz `rp` with an announcement id of `56267`, the new entry of the company BioNTech.
+## Installation
 
 ```shell
-export STATE="rp" 
-export RB_ID="56267"
-curl -X GET  "https://www.handelsregisterbekanntmachungen.de/skripte/hrb.php?rb_id=$RB_ID&land_abk=$STATE"
+# clone the project
+git clone git@github.com:LucPrestin/hpi-ii-project-2022.git
+
+cd hpi-ii-project-2022
+
+# install the python dependencies
+poetry install
+
+# generate python classes from .proto files
+./generate-proto.sh
 ```
 
-### LR website
-
-The [Lobbyregister website](https://www.lobbyregister.bundestag.de/startseite) contains entries that reflect structures
-of influence exerted by interest representatives on the political decision-making process. It is intended to help
-strengthen public trust in politics and the legitimacy of the decision-making processes of parliament and government.
-
-This data is also provided for machine processing. For a single interest the register number and ID are needed. These
-can then be placed in a corresponding link, on which a GET request is then sent. Here as an example the request to the
-data of SAP SE:
+# Running
 
 ```shell
-export REGISTER_ID="R002180"
-export ID="8088"
-curl -X GET "https://www.lobbyregister.bundestag.de/sucheJson/${REGISTER_ID}/${ID}"
+# start the infrastructure
+docker-compose up
+
+# start the kafka-connector to elasticsearch
+./connect/push-config.sh
+
+# start crawling the lobby register
+poetry run python ./information_integration/main.py lobby_register crawl_all
+
+# or start crawling the trade register
+poetry run python ./information_integration/main.py trade_register crawl --id <start id> --state <state abbreviation>
 ```
 
-## Crawling
+# Querying Data
 
-### RB Crawler
+## Kowl
 
-The Registerbekanntmachung crawler (rb_crawler) sends a get request to the link above with parameters (`rb_id`
-and `land_abk`) passed to it and extracts the information from the response.
+Kowl is a dashboard for kafka applications. Its default location is [http://localhost:8080](http://localhost:8080). For further information, have a look at the [wiki](https://github.com/LucPrestin/hpi-ii-project-2022/wiki/Kowl).
 
-We use [Protocol buffers](https://developers.google.com/protocol-buffers) to define
-our [schema](./proto/bakdata/corporate/v1).
-
-The crawler uses the generated model class (i.e., `Corporate` class) from
-the [protobuf schema](./proto/bakdata/corporate/v1/corporate.proto). We will explain furthur how you can generate this
-class using the protobuf compiler. The compiler creates a `Corporate` class with the fields defined in the schema. The
-crawler fills the object fields with the extracted data from the website. It then serializes the `Corporate` object to
-bytes so that Kafka can read it and produces it to the `corporate-events` topic. After that, it increments the `rb_id`
-value and sends another GET request. This process continues until the end of the announcements is reached, and the
-crawler will stop automatically.
-
-### LR Crawler
-
-The Lobbyregister crawler (lr_crawler) iterates each entry of
-the [simplified register entries](https://github.com/LucPrestin/hpi-ii-project-2022/blob/main/assets/json/Lobbyregistersuche-2022-05-24_13-37-55.json)
-we currently included into the project statically. From these entries it uses the `registerNumber` and `id` to get the
-detailed information on one interest group as described above.
-
-We use [Protocol buffers](https://developers.google.com/protocol-buffers) to define
-our [schema](./proto/bakdata/corporate/v1).
-
-## Event Topics
-
-### corporate-events topic
-
-The `corporate-events` holds all the events (announcements) produced by the `rb_crawler`. Each message in a Kafka topic
-consist of a key and value.
-
-The key type of this topic is `String`. The key is generated by the `rb_crawler`. The key is a combination of
-the `land_abk` and the `rb_id`. If we consider the `rb_id` and `land_abk` from the example above, the key will look like
-this: `rp_56267`.
-
-The value of the message contains more information like `event_name`, `event_date`, and more. Therefore, the value type
-is complex and needs a schema definition.
-
-### lobby-events topic
-
-The `lobby-events` holds all the institutions produced by the `lr_crawler`. Each message in a Kafka topic consist of a
-key and value.
-
-The key type of this topic is `String`. The key is generated by the `lr_crawler`. The key is a combination of
-the `registerId` and the internal `id` from the lobby register. If we consider the `registerId` and `id` from the
-example above, the key will look like this: `R002180_8088`.
-
-The value of the message contains more information like `activitiesDescription`, `annualInterestExpenditure`, and more.
-Therefore, the value type is complex and needs a schema definition.
-
-### Kafka Connect
-
-[Kafka Connect](https://docs.confluent.io/platform/current/connect/index.html) is a tool to move large data sets into (
-source) and out (sink) of Kafka. Here we only use the Sink connector, which consumes data from a Kafka topic into a
-secondary index such as Elasticsearch.
-
-We use the [Elasticsearch Sink Connector](https://docs.confluent.io/kafka-connect-elasticsearch/current/overview.html)
-to move the data from the `coporate-events` topic into the Elasticsearch.
-
-## Setup
-
-This project uses [Poetry](https://python-poetry.org/) as a build tool. To install all the dependencies, just
-run `poetry install`.
-
-This project uses Protobuf for serializing and deserializing objects. We provided a
-simple [protobuf schema](./proto/bakdata/corporate/v1). Furthermore, you need to generate the Python code for the model
-class from the proto file. To do so run the [`generate-proto.sh`](./generate-proto.sh) script. This script uses
-the [Protobuf compiler (protoc)](https://grpc.io/docs/protoc-installation/) to generate the model class under
-the `build/gen/bakdata/corporate/v1` folder with the name `<protobuf file name without extension>_pb2.py`.
-
-## Run
-
-### Infrastructure
-
-Use `docker-compose up -d` to start all the services: [Zookeeper](https://zookeeper.apache.org/)
-, [Kafka](https://kafka.apache.org/)
-, [Schema Registry](https://docs.confluent.io/platform/current/schema-registry/index.html)
-, [Kafka REST Proxy]((https://github.com/confluentinc/kafka-rest)), [Kowl](https://github.com/redpanda-data/kowl)
-, [Kafka Connect](https://docs.confluent.io/platform/current/connect/index.html),
-and [Elasticsearch](https://www.elastic.co/elasticsearch/). Depending on your system, it takes a couple of minutes
-before the services are up and running. You can use a tool
-like [lazydocker](https://github.com/jesseduffield/lazydocker) to check the status of the services.
-
-### Kafka Connect
-
-After all the services are up and running, you need to configure Kafka Connect to use the Elasticsearch sink connector.
-The config file is a JSON formatted file. We provided a [basic configuration file](./connect/elastic-sink.json). You can
-find more information about the configuration properties on
-the [official documentation page](https://docs.confluent.io/kafka-connect-elasticsearch/current/overview.html).
-
-To start the connector, you need to push the JSON config file to Kafka. You can either use the UI dashboard in Kowl or
-use the [bash script provided](./connect/push-config.sh). It is possible to remove a connector by deleting it through
-Kowl's UI dashboard or calling the deletion API in the [bash script provided](./connect/delete-config.sh).
-
-### RB Crawler
-
-You can start the crawler with the command below:
-
-```shell
-poetry run python rb_crawler/main.py --id $RB_ID --state $STATE
-```
-
-The `--id` option is an integer, which determines the initial event in the handelsregisterbekanntmachungen to be
-crawled.
-
-The `--state` option takes a string (only the ones listed above). This string defines the state where the crawler should
-start from.
-
-You can use the `--help` option to see the usage:
-
-```
-Usage: main.py [OPTIONS]
-
-Options:
-  -i, --id INTEGER                The rb_id to initialize the crawl from
-  -s, --state [bw|by|be|br|hb|hh|he|mv|ni|nw|rp|sl|sn|st|sh|th]
-                                  The state ISO code
-  --help                          Show this message and exit.
-```
-
-### LR Crawler
-
-You can start the crawler with the command below:
-
-```shell
-poetry run python lr_crawler/main.py
-```
-
-This will query every entry that is given in
-the [current entry list](https://github.com/LucPrestin/hpi-ii-project-2022/blob/main/assets/json/Lobbyregistersuche-2022-05-24_13-37-55.json)
-. If you want a specific entry, you can use the id flag.
-
-```shell
-poetry run python lr_crawler/main.py --id "<id e.g. R002180>"
-```
-
-You can use the `--help` option to see the usage:
-
-```
-Usage: main.py [OPTIONS]
-
-Options:
-  -i, --id TEXT  The lr id to extract
-  --help         Show this message and exit.
-```
-
-## Query data
-
-### Kowl
-
-[Kowl](https://github.com/redpanda-data/kowl) is a web application that helps you manage and debug your Kafka workloads
-effortlessly. You can create, update, and delete Kafka resources like Topics and Kafka Connect configs. You can see
-Kowl's dashboard in your browser under http://localhost:8080.
-
-### Elasticsearch
+## Elasticsearch
 
 To query the data from Elasticsearch, you can use
 the [query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/query-dsl.html) of elastic. For example:
@@ -216,23 +61,9 @@ curl -X GET "localhost:9200/_search?pretty" -H 'Content-Type: application/json' 
 {
     "query": {
         "match": {
-            <field>
+            "name": "Mustermann, Max"
         }
     }
 }
 '
-```
-
-`<field>` is the field you wish to search. For example:
-
-```
-"reference_id":"HRB 41865"
-```
-
-## Teardown
-
-You can stop and remove all the resources by running:
-
-```shell
-docker-compose down
 ```
