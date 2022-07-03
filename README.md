@@ -67,3 +67,8 @@ curl -X GET "localhost:9200/_search?pretty" -H 'Content-Type: application/json' 
 }
 '
 ```
+# Teardown
+
+```shell
+docker-compose down
+```
