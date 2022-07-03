@@ -1,5 +1,6 @@
 import logging
 import re
+from hashlib import md5
 from tokenize import String
 from typing import List, Tuple
 
@@ -25,7 +26,6 @@ class AnnouncementExtractor:
         announcement.announcement_id = announcement_id
         announcement.state = state
         announcement.reference_id = self.extract_company_reference_number(selector)
-        announcement.id = f"{state}_{announcement_id}"
         announcement.event_date = selector.xpath("/html/body/font/table/tr[4]/td/text()").get()
 
         event_type = selector.xpath("/html/body/font/table/tr[3]/td/text()").get()
@@ -38,8 +38,11 @@ class AnnouncementExtractor:
 
         self.set_announcement_people(announcement, raw_text)
 
-        self.announcement_producer.produce_to_topic(announcement=announcement)
+        announcement.id = md5(
+            f"{announcement.state}{announcement.reference_id}{announcement.event_date}".encode('utf_8')
+        ).hexdigest()
 
+        self.announcement_producer.produce_to_topic(announcement=announcement)
         log.debug(announcement)
 
     @staticmethod

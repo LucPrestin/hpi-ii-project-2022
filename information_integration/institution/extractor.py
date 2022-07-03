@@ -1,4 +1,5 @@
 import logging
+from hashlib import md5
 
 from build.gen.bakdata.corporate.v1.institution_pb2 import Institution
 from build.gen.bakdata.corporate.v1.utils_pb2 import *
@@ -23,7 +24,7 @@ class InstitutionExtractor:
         detailed_information = request_result['registerEntryDetail']
         internal_register_id = detailed_information['id']
 
-        institution.id = f"{register_number}_{internal_register_id}"
+        institution.id = md5(f'{register_number}{internal_register_id}'.encode('utf_8')).hexdigest()
 
         if "name" not in detailed_information["lobbyistIdentity"]:
             if detailed_information["lobbyistIdentity"]["identity"] != "NATURAL" and \

@@ -1,4 +1,5 @@
 import logging
+from hashlib import md5
 from typing import List
 
 from build.gen.bakdata.corporate.v1.person_pb2 import Person
@@ -29,6 +30,8 @@ class PersonExtractor:
         if 'organizationMemberEmails' in lobbyist_identity:
             person.email.extend(lobbyist_identity['organizationMemberEmails'])
 
+        person.id = md5(f'{person.name}'.encode('utf_8')).hexdigest()
+
         self.producer.produce_to_topic(person)
         return Person()
 
@@ -39,7 +42,9 @@ class PersonExtractor:
             intel = raw_ceo.split(',')
 
             person = Person()
+
             person.name = f'{intel[0]}, {intel[1]}'
+            person.id = md5(f'{person.name}'.encode('utf_8')).hexdigest()
 
             self.producer.produce_to_topic(person)
             result.append(person)
