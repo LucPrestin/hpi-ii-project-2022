@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "bakdata/corporate/v1/utils.proto";
-import "bakdata/corporate/v1/person.proto";
 
 package bakdata.corporate.v1;
 
@@ -15,6 +14,6 @@ message Announcement {
   Status status = 7;
   string raw_information = 8;
   string company_name = 10;
-  repeated Person ceos = 11;
-  repeated Person shareholders = 12;
+  repeated string ceos = 11;
+  repeated string shareholders = 12;
 }

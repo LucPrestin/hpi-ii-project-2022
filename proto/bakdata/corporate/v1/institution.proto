@@ -1,8 +1,6 @@
 syntax = "proto3";
 
 import "bakdata/corporate/v1/utils.proto";
-import "bakdata/corporate/v1/grant.proto";
-import "bakdata/corporate/v1/person.proto";
 
 import "google/protobuf/timestamp.proto";
 
@@ -18,13 +16,13 @@ message Institution {
   Contact contact = 7;
   Range annual_interest_expenditure = 8;
   Range interest_staff_number = 9;
-  repeated Person representatives = 10;
-  repeated Person interest_staff = 11;
+  repeated string representatives = 10;
+  repeated string interest_staff = 11;
   repeated string interests = 12;
   string activities_description = 13;
-  repeated Person clients = 14;
-  repeated GrantDonation grants = 15;
-  repeated GrantDonation donations = 16;
+  repeated string clients = 14;
+  repeated string grants = 15;
+  repeated string donations = 16;
   string financial_report_url = 17;
   bool disclosure_required = 18;
   string code_of_conduct_url = 19;

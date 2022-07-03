@@ -50,3 +50,12 @@ class PersonExtractor:
             result.append(person)
 
         return result
+
+    def extract_shareholder_from_trade_register_announcement(self, raw_shareholders: str) -> Person:
+        person = Person()
+
+        person.name = raw_shareholders.split(';')[1]
+        person.id = md5(f'{person.name}'.encode('utf_8')).hexdigest()
+
+        self.producer.produce_to_topic(person)
+        return [person]

@@ -80,11 +80,11 @@ class InstitutionExtractor:
             ))
 
         institution.representatives.extend(map(
-            lambda person_dict: self.person_extractor.extract_from_lobby_register(person_dict),
+            lambda person_dict: self.person_extractor.extract_from_lobby_register(person_dict).id,
             detailed_information["lobbyistIdentity"]["legalRepresentatives"]))
 
         institution.interest_staff.extend(map(
-            lambda person_dict: self.person_extractor.extract_from_lobby_register(person_dict),
+            lambda person_dict: self.person_extractor.extract_from_lobby_register(person_dict).id,
             detailed_information["lobbyistIdentity"]["namedEmployees"]))
 
         institution.interests.extend(map(
@@ -98,7 +98,7 @@ class InstitutionExtractor:
             detailed_information["clientOrganizations"]))
 
         institution.clients.extend(map(
-            lambda person_dict: self.person_extractor.extract_from_lobby_register(person_dict),
+            lambda person_dict: self.person_extractor.extract_from_lobby_register(person_dict).id,
             detailed_information["clientPersons"]))
 
         for index, entry in enumerate(detailed_information["donators"]):
@@ -107,13 +107,13 @@ class InstitutionExtractor:
                     self.grant_extractor.extract_from_lobby_register(
                         entry,
                         institution.name,
-                        index))
+                        index).id)
             elif entry["categoryType"] == "DONATIONS":
                 institution.donations.append(
                     self.grant_extractor.extract_from_lobby_register(
                         entry,
                         institution.name,
-                        index))
+                        index).id)
 
         institution.financial_report_url = ""
         for entry in detailed_information["registerEntryMedia"]:

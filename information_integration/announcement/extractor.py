@@ -71,9 +71,9 @@ class AnnouncementExtractor:
     def set_announcement_people(self, announcement, raw_text) -> None:
         people, person_type = self.extract_person(raw_text)
         if person_type == 'Geschäftsführer:' or person_type == 'Geschäftsführerin:':
-            announcement.ceos.extend(people)
+            announcement.ceos.extend(map(lambda person: person.id, people))
         elif person_type == 'Gesellschafter:' or person_type == 'Gesellschafterin:':
-            announcement.shareholders.extend(people)
+            announcement.shareholders.extend(map(lambda person: person.id, people))
 
     def extract_person(self, information: String) -> Tuple[List[str], str]:
         regexes = {
@@ -81,8 +81,8 @@ class AnnouncementExtractor:
             'Inhaberin:': self.person_extractor.extract_ceos_from_trade_register_announcement,
             'Geschäftsführer:': self.person_extractor.extract_ceos_from_trade_register_announcement,
             'Geschäftsführerin:': self.person_extractor.extract_ceos_from_trade_register_announcement,
-            'Gesellschafter:': self.extract_shareholder,
-            'Gesellschafterin:': self.extract_shareholder
+            'Gesellschafter:': self.person_extractor.extract_shareholder_from_trade_register_announcement,
+            'Gesellschafterin:': self.person_extractor.extract_shareholder_from_trade_register_announcement
         }
 
         people = []
@@ -96,7 +96,3 @@ class AnnouncementExtractor:
                 break
 
         return people, p_type
-
-    @staticmethod
-    def extract_shareholder(raw_shareholders):
-        return [raw_shareholders.split(';')[1]]
