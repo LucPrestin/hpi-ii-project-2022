@@ -49,7 +49,7 @@ poetry run python ./information_integration/main.py trade_register crawl --id <s
 
 ## Kowl
 
-Kowl is a dashboard for kafka applications. Its default location is [http://localhost:8080](http://localhost:8080). For further information, have a look at the [wiki](https://github.com/LucPrestin/hpi-ii-project-2022/wiki/Kowl).
+Kowl is a dashboard for kafka applications. Its default location is [http://localhost:8080](http://localhost:8080). For further information, have a look at the [wiki](https://github.com/LucPrestin/hpi-ii-project-2022/wiki/Infrastructure#Kowl).
 
 ## Elasticsearch
 
