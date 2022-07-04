@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 class InstitutionProducer:
     def __init__(self):
-        self.used_ids = get_used_ids()
+        self.used_ids = get_used_ids(TOPIC)
 
         schema_registry_conf = {"url": SCHEMA_REGISTRY_URL}
         schema_registry_client = SchemaRegistryClient(schema_registry_conf)

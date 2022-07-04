@@ -35,8 +35,8 @@ class AnnouncementExtractor:
 
         announcement.raw_information = raw_text
         announcement.company_name = self.extract_company_name(raw_text)
-
-        self.set_announcement_people(announcement, raw_text)
+        if announcement.event_type == "create":
+            self.set_announcement_people(announcement, raw_text)
 
         announcement.id = md5(
             f"{announcement.state}{announcement.reference_id}{announcement.event_date}".encode('utf_8')
@@ -69,10 +69,12 @@ class AnnouncementExtractor:
         return raw_text.split(',', 1)[0]
 
     def set_announcement_people(self, announcement, raw_text) -> None:
+        ceo_types = ['Inhaber:', 'Inhaberin:', 'Geschäftsführer:', 'Geschäftsführerin:']
+        shareholder_types = ['Gesellschafter:', 'Gesellschafterin:']
         people, person_type = self.extract_person(raw_text)
-        if person_type == 'Geschäftsführer:' or person_type == 'Geschäftsführerin:':
+        if person_type in ceo_types:
             announcement.ceos.extend(map(lambda person: person.id, people))
-        elif person_type == 'Gesellschafter:' or person_type == 'Gesellschafterin:':
+        elif person_type in shareholder_types:
             announcement.shareholders.extend(map(lambda person: person.id, people))
 
     def extract_person(self, information: String) -> Tuple[List[str], str]:

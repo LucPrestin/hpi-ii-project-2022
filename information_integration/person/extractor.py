@@ -15,15 +15,17 @@ class PersonExtractor:
     def extract_from_lobby_register(self, lobbyist_identity: dict) -> Person:
         person = Person()
 
-        title_before = lobbyist_identity['academicDegreeBefore'] + ' ' \
-            if 'academicDegreeBefore' in lobbyist_identity \
-            else ''
+        if 'academicDegreeBefore' in lobbyist_identity:
+            title_before = lobbyist_identity['academicDegreeBefore'] + ' ' 
+        else:
+            title_before = ''
+        
+        if 'academicDegreeAfter' in lobbyist_identity:
+            title_after = ' ' + lobbyist_identity['academicDegreeAfter']
+        else:
+            title_after = ''
 
-        title_after = ' ' + lobbyist_identity['academicDegreeAfter'] \
-            if 'academicDegreeAfter' in lobbyist_identity \
-            else ''
-
-        person.name = f'{title_before}{lobbyist_identity["lastName"]}, {lobbyist_identity["commonFirstName"]}{title_after}'
+        person.name = f'{title_before}{lobbyist_identity["lastName"].strip().lower()}, {lobbyist_identity["commonFirstName"].strip().lower()}{title_after}'
         person.role = lobbyist_identity['function'] if 'function' in lobbyist_identity else ''
         person.phone = lobbyist_identity['phoneNumber'] if 'phoneNumber' in lobbyist_identity else ''
 
@@ -33,7 +35,7 @@ class PersonExtractor:
         person.id = md5(f'{person.name}'.encode('utf_8')).hexdigest()
 
         self.producer.produce_to_topic(person)
-        return Person()
+        return person
 
     def extract_ceos_from_trade_register_announcement(self, raw_ceos: str) -> List[Person]:
         result: List[Person] = []
@@ -43,7 +45,11 @@ class PersonExtractor:
 
             person = Person()
 
-            person.name = f'{intel[0]}, {intel[1]}'
+            if len(intel) >= 2:
+                person.name = f'{intel[0].strip().lower()}, {intel[1].strip().lower()}'
+            else:
+                continue
+
             person.id = md5(f'{person.name}'.encode('utf_8')).hexdigest()
 
             self.producer.produce_to_topic(person)
@@ -54,7 +60,7 @@ class PersonExtractor:
     def extract_shareholder_from_trade_register_announcement(self, raw_shareholders: str) -> Person:
         person = Person()
 
-        person.name = raw_shareholders.split(';')[1]
+        person.name = raw_shareholders.split(';')[1].strip().lower()
         person.id = md5(f'{person.name}'.encode('utf_8')).hexdigest()
 
         self.producer.produce_to_topic(person)

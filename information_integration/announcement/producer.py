@@ -7,7 +7,7 @@ from confluent_kafka.serialization import StringSerializer
 
 from build.gen.bakdata.corporate.v1.announcement_pb2 import Announcement
 from ._constants import SCHEMA_REGISTRY_URL, BOOTSTRAP_SERVER, TOPIC
-from ..utils import get_used_ids
+from information_integration.utils import get_used_ids
 
 log = logging.getLogger(__name__)
 
