@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+    <meta charset='UTF-8'/>
+    <title>Visualization of Message Graphs using a Force Simulation</title>
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+            width: 100%
+        }
+
+        .svg-container {
+            height: 100%;
+            width: 100%;
+        }
+
+        .control-container {
+            position: absolute;
+            height: 350px;
+            width: 400px;
+            top: 0px;
+            left: 0px;
+            z-index: 1;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+            padding: 5px 5px 5px 5px;
+            background-color: white;
+        }
+
+        .legend-entry {
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="control-container">
+    <h1>Visualization of the knowledge graph using a Force Simulation</h1>
+
+    <label for="checkbox_show_edges">Show graph edges:</label>
+    <input id="checkbox_show_edges" name="checkbox_show_edges" type="checkbox">
+
+    <br/>
+
+    <button id="button-confirm">Confirm</button>
+    <button id="button_run_more_simulation" disabled>Simulate more!!!</button>
+
+    <br/>
+    <br/>
+
+    <div>
+        <div class='legend-entry' style="background-color: Salmon ; padding: 10px; border: 1px solid black;"></div>
+        <p class='legend-entry'>Personen</p>
+    </div>
+    <div>
+        <div class='legend-entry'
+             style="background-color: MediumSeaGreen ; padding: 10px; border: 1px solid black;"></div>
+        <p class='legend-entry'>Handelsregisterbekanntmachungen</p>
+    </div>
+
+    <div>
+        <div class='legend-entry' style="background-color: Moccasin ; padding: 10px; border: 1px solid black;"></div>
+        <p class='legend-entry'>Lobbyregistereinträge</p>
+    </div>
+
+</div>
+
+<div id="container" class="svg-container"></div>
+
+<script type="module">
+    import * as d3 from "https://cdn.skypack.dev/d3@7";
+    import {forceSimulation, forceLink, forceManyBody, forceCollide} from "https://cdn.skypack.dev/d3-force@3"
+
+    HTMLElement.prototype.removeChildren = function () {
+        while (this.firstChild) {
+            this.removeChild(this.lastChild)
+        }
+    }
+
+    const container = document.getElementById("container");
+    const edge_checkbox = document.getElementById("checkbox_show_edges");
+    const button_start_simulation = document.getElementById("button-confirm");
+    const button_continue_simulation = document.getElementById("button_run_more_simulation");
+    const ui_elements = [
+        edge_checkbox,
+        button_start_simulation,
+        button_continue_simulation
+    ];
+
+    const minNodeRadius = 30
+    const radiusIncrement = 5
+
+    function node_from_person(person, index) {
+        return {
+            label: person['name'],
+            id: person['id'],
+            color: 'Salmon',
+            index: index,
+            x: 400,
+            y: 400,
+            vx: 0,
+            vy: 0,
+            radius: minNodeRadius - radiusIncrement
+        }
+    }
+
+    function node_from_institution(institution, index) {
+        return {
+            label: institution['name'],
+            id: institution['id'],
+            color: 'MediumSeaGreen',
+            index: index,
+            x: 400,
+            y: 400,
+            vx: 0,
+            vy: 0,
+            radius: minNodeRadius - radiusIncrement
+        }
+    }
+
+    function node_from_announcement(announcement, index) {
+        return {
+            label: `${announcement['company_name']} - ${announcement['event_type']}`,
+            id: announcement['id'],
+            color: 'Moccasin',
+            index: index,
+            x: 400,
+            y: 400,
+            vx: 0,
+            vy: 0,
+            radius: minNodeRadius - radiusIncrement
+        }
+    }
+
+    function edges_from_person(person, nodeMap) {
+        return []
+    }
+
+    function edges_from_institution(institution, nodeMap) {
+        let edges = []
+
+        let ids = [
+            ...institution['interest_staff'],
+            ...institution['representatives']
+        ]
+
+        for (const id of ids) {
+            edges.push({
+                source: nodeMap[institution['id']]['index'],
+                target: nodeMap[id]['index']
+            })
+        }
+
+        return edges
+    }
+
+    function edges_from_announcement(announcement, nodeMap) {
+        let edges = []
+
+        let ids = [
+            ...announcement['ceos'],
+            ...announcement['shareholders']
+        ]
+
+        for (const id of ids) {
+            edges.push({
+                source: nodeMap[announcement['id']]['index'],
+                target: nodeMap[id]['index']
+            })
+        }
+
+        return []
+    }
+
+    const extraction_methods = {
+        persons: {
+            node: node_from_person,
+            edge: edges_from_person
+        },
+        lobby_register_institutions: {
+            node: node_from_institution,
+            edge: edges_from_institution
+        },
+        trade_register_announcements: {
+            node: node_from_announcement,
+            edge: edges_from_announcement
+        }
+    }
+
+    function createNodes(vertices) {
+        const nodes = []
+        const nodeMap = []
+
+        vertices.forEach((vertex, index) => {
+            const node = extraction_methods[vertex.topic]['node'](vertex.value, index)
+            nodes.push(node)
+            nodeMap[node.id] = node
+        })
+
+        return {nodes, nodeMap}
+    }
+
+    function createEdges(vertices, nodeMap) {
+        let edges = []
+
+        for (const vertex of vertices) {
+            const new_edges = extraction_methods[vertex.topic]['edge'](vertex.value, nodeMap)
+            edges = edges.concat(new_edges)
+        }
+
+        return edges
+    }
+
+    async function getDataFromElasticsearch() {
+
+        let number_queries = []
+        Object.keys(extraction_methods).forEach(topic => {
+            number_queries.push(fetch(`http://localhost:9200/${topic}/_search`))
+        })
+        const number_responses = await Promise.all(number_queries)
+
+        let data_queries = []
+
+        for (const response of number_responses) {
+            if (response.ok) {
+                const data = await response.json()
+                const num_hits = data['hits']['total']['value']
+
+                let topic = response.url
+                topic = topic.replace(/^http:\/\/localhost:9200\//, '')
+                topic = topic.replace(/\/_search$/, '')
+
+                data_queries.push(fetch(`http://localhost:9200/${topic}/_search?scroll=10m&size=${num_hits}`))
+            }
+        }
+        const data_responses = await Promise.all(Object.values(data_queries))
+
+        let vertices = []
+        for (const response of data_responses) {
+            if (response.ok) {
+                const requested_data = await response.json()
+                for (const hit of requested_data['hits']['hits']) {
+                    vertices.push({topic: hit['_index'], value: hit['_source']})
+                }
+            }
+        }
+
+        return vertices
+    }
+
+    function ticked(nodes, edges, show_edges) {
+        d3.select('svg g')
+            .selectAll('circle')
+            .data(nodes)
+            .join('circle')
+            .attr('r', node => node.radius)
+            .style('fill', node => node.color)
+            .style('stroke', "black")
+            .attr('cx', node => node.x)
+            .attr("cy", node => node.y)
+            .on('click', node => console.log(node.target.__data__))
+
+        d3.select('svg g')
+            .selectAll('text')
+            .data(nodes)
+            .join('text')
+            .text(node => node.label)
+            .attr('font-size', node => node.radius / 2 + 'px')
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'central')
+            .attr('x', node => node.x)
+            .attr('y', node => node.y)
+
+        if (show_edges) {
+            d3.select('svg g')
+                .selectAll('path')
+                .data(edges)
+                .join("path")
+                .attr("d", d3.link(d3.curveBasis)
+                    .source(edge => [edge.source.x, edge.source.y])
+                    .target(edge => [edge.target.x, edge.target.y]))
+                .attr("fill", "none")
+                .attr("stroke", "black")
+        }
+    }
+
+    function createAndRunSimulation({nodes, edges}, show_edges) {
+        let svg = d3.select(container)
+            .append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .call(d3.zoom().on("zoom", event => svg.attr("transform", event.transform)))
+            .append("g")
+
+        return forceSimulation(nodes)
+            .force('link', forceLink(edges))
+            .force('charge', forceManyBody().strength(-1))
+            .force('collision', forceCollide().radius(function (node) {
+                return node['radius']
+            }))
+            .on('tick', () => ticked(nodes, edges, show_edges))
+    }
+
+    let simulation = {};
+
+    button_start_simulation.addEventListener("click", async () => {
+        container.removeChildren()
+        ui_elements.forEach(element => element.disabled = true);
+
+        const vertices = await getDataFromElasticsearch()
+
+        const {nodes, nodeMap} = createNodes(vertices)
+        const edges = createEdges(vertices, nodeMap)
+
+        simulation = createAndRunSimulation({nodes, edges}, edge_checkbox.checked,);
+
+        setTimeout(function () {
+            simulation.stop();
+            ui_elements.forEach(element => element.disabled = false);
+        }, 3000);
+    })
+
+    button_continue_simulation.addEventListener('click', () => {
+        ui_elements.forEach(element => element.disabled = true);
+
+        simulation.restart();
+
+        setTimeout(function () {
+            simulation.stop();
+            ui_elements.forEach(element => element.disabled = false)
+        }, 3000);
+    })
+
+</script>
+</body>
+
+</html>
